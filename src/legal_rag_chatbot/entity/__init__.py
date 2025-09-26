@@ -13,7 +13,7 @@ class DataEmbeddingConfig:
     root_dir: Path
     data_path: Path
     model_name: str
-    text_column: str # 要進行 embedding 的欄位名稱
+    text_column: str
 
 @dataclass(frozen=True)
 class VectorStorageConfig:
