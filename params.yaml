@@ -1,0 +1,7 @@
+RAGArguments:
+    chunk_size: 512
+    chunk_overlap: 30
+    top_k_retrieval: 10
+    top_k_ranking: 10
+    embedding_model_name: "distilbert-base-uncased"
+    llm_model_name: "gpt2"
