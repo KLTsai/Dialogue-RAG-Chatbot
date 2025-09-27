@@ -15,3 +15,10 @@ data_embedding:
 vector_storage:
   data_path: artifacts/data_embedding/samsum_dataset
   embedding_dim: 768
+
+gemini: 
+  # Gemini API 設定
+  # api-key store in .env
+  gemini_model: gemini-2.5-flash-lite
+  gemini_temperature: 0.1
+  gemini_max_output_tokens: 512

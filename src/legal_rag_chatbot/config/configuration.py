@@ -1,18 +1,10 @@
-# from dataclasses import dataclass
-
-# @dataclass
-# class RAGConfig:
-#     chunk_size: int
-#     chunk_overlap: int
-#     top_k_retrieval: int
-#     top_k_ranking: int
-#     embedding_model_name: str = "distilbert-base-uncased"
-#     llm_model_name: str = "gpt2"
 from legal_rag_chatbot.constants import *
 from legal_rag_chatbot.utils.common import read_yaml, create_directories
 from legal_rag_chatbot.entity import (
     DataIngestionConfig,
-    DataEmbeddingConfig
+    DataEmbeddingConfig,
+    VectorStorageConfig,
+    GeminiConfig
 )
 
 class ConfigurationManager:
@@ -64,3 +56,22 @@ class ConfigurationManager:
         )
 
         return data_embedding_config
+    
+    def get_vector_storage_config(self)-> VectorStorageConfig:
+
+        config = self.config.vector_storage
+        vector_storage_config = VectorStorageConfig(
+            data_path=config.data_path,
+            embedding_dim=config.embedding_dim
+        )
+
+        return vector_storage_config
+    
+    def get_gemini_config(self)-> GeminiConfig:
+        config = self.config.gemini
+        gemini_config = GeminiConfig(
+            gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
+            gemini_model=config.gemini_model
+        )
+
+        return gemini_config
