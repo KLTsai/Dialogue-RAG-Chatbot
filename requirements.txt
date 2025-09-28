@@ -4,7 +4,7 @@ sacrebleu
 rouge_score 
 py7zr
 pandas
-nltk
+dotenv
 tqdm
 PyYAML
 matplotlib
