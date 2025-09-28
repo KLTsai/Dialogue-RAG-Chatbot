@@ -1,10 +1,13 @@
+import os
+from dotenv import load_dotenv
 from legal_rag_chatbot.constants import *
 from legal_rag_chatbot.utils.common import read_yaml, create_directories
 from legal_rag_chatbot.entity import (
     DataIngestionConfig,
     DataEmbeddingConfig,
     VectorStorageConfig,
-    GeminiConfig
+    GeminiConfig,
+    RAGSystemConfig
 )
 
 class ConfigurationManager:
@@ -31,18 +34,6 @@ class ConfigurationManager:
         )
 
         return data_ingestion_config
-
-    # def get_data_loading_config(self) -> DataLoadingConfig:
-    #     config = self.config.data_loading
-        
-    #     create_directories([config.root_dir])
-
-    #     data_validation_config = DataLoadingConfig(
-    #         root_dir=config.root_dir,
-    #         ALL_REQUIRED_FILES=config.ALL_REQUIRED_FILES
-    #     )
-
-    #     return data_validation_config
     
     def get_data_embedding_config(self) -> DataEmbeddingConfig:
         config = self.config.data_embedding
@@ -69,9 +60,20 @@ class ConfigurationManager:
     
     def get_gemini_config(self)-> GeminiConfig:
         config = self.config.gemini
+        load_dotenv()
         gemini_config = GeminiConfig(
             gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
-            gemini_model=config.gemini_model
+            gemini_model=config.gemini_model,
+            gemini_temperature= config.gemini_temperature,
+            gemini_max_output_tokens=config.gemini_max_output_tokens
         )
 
         return gemini_config
+
+    def get_rag_sys_config(self)-> RAGSystemConfig:
+        config = self.config.RAG_system
+        rag_sys_config = RAGSystemConfig(
+            max_retrieval_docs = config.max_retrieval_docs
+        )
+
+        return rag_sys_config
