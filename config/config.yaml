@@ -19,9 +19,9 @@ vector_storage:
 gemini: 
   # Gemini API 設定
   # api-key store in .env
-  gemini_model: gemini-2.0-flash
+  gemini_model: gemini-2.0-flash-001
   gemini_temperature: 0.3
   gemini_max_output_tokens: 512
 
 RAG_system:
-  max_retrieval_docs: 3
+  max_retrieval_docs: 10

@@ -1,12 +1,15 @@
 import os
 from box.exceptions import BoxValueError
 import yaml
-from legal_rag_chatbot.logging import logger
+from src.dialogue_rag_chatbot.logging import logger
 from ensure import ensure_annotations
 from box import ConfigBox
 from pathlib import Path
-from typing import Any
-
+from typing import List, Dict, Any, Tuple
+from src.dialogue_rag_chatbot.entity import (
+    IsREL,
+    IsSUP
+)
 
 
 @ensure_annotations
@@ -62,3 +65,34 @@ def get_size(path: Path) -> str:
     """
     size_in_kb = round(os.path.getsize(path)/1024)
     return f"~ {size_in_kb} KB"
+
+
+def calculate_score(candidate: List[Dict[str, Any]]) -> int:
+    """ calculate score for IsUse
+
+    Args :
+        candidate (List[Dict[str, Any]]): candidate answer list
+
+    Returns:
+        int: socre after weighted sum
+
+    """
+
+    score = 0
+
+    # IsREL 權重
+    if candidate['is_relevant'] == IsREL.RELEVANT:
+        score += 10
+
+    # IsSUP 權重
+    support_scores = {
+        IsSUP.FULLY_SUPPORTED: 10,
+        IsSUP.PARTIALLY_SUPPORTED: 5,
+        IsSUP.NO_SUPPORT: 0
+    }
+    score += support_scores.get(candidate['support_level'], 0)
+
+    # IsUSE 權重
+    score += candidate['usefulness_score'].value * 2
+
+    return score

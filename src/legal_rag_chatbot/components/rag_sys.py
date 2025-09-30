@@ -3,6 +3,7 @@ from datetime import datetime
 from datasets import load_from_disk
 from typing import List, Dict, Any, Tuple
 import numpy as np
+from legal_rag_chatbot.utils.common import calculate_score
 from legal_rag_chatbot.logging import logger
 from legal_rag_chatbot.config.configuration import ConfigurationManager
 from legal_rag_chatbot.entity import (
@@ -17,8 +18,9 @@ from legal_rag_chatbot.components.vector_storage import VectorStorage
 from legal_rag_chatbot.components.gemini_client import GeminiClient
 
 class DialogueRAGSystem:
-    """基於 SAMSum 對話資料集的 RAG 系統"""
-
+    """
+    RAG System based on SAMSum dataset
+    """
     def __init__(self, config: ConfigurationManager):
         self.config = config
         self.embedding_model_config = self.config.get_data_embedding_config()
@@ -44,8 +46,10 @@ class DialogueRAGSystem:
         logger.info("Dialogue RAG System 初始化完成")
 
     def build_knowledge_base(self):
-        """建立對話知識庫"""
-        logger.info("開始建立對話知識庫...")
+        """
+        Build dialogue knowledgebase
+        """
+        logger.info("Building up dialogue knowledgebase...")
 
         # 載入和處理對話
         documents = [{"id": item["id"], "dialogue": item["dialogue"], "summary": item["summary"]} for item in self.dataset_with_embeddings]
@@ -56,7 +60,7 @@ class DialogueRAGSystem:
 
     def query(self, user_query: str, conversation_history: List[str] = None) -> Dict[str, Any]:
         """
-        主要查詢函數 - 實作完整的對話檢索流程
+        Main query function for retrieve wokflow
         """
         start_time = time.time()
         self.stats["total_queries"] += 1
@@ -64,7 +68,7 @@ class DialogueRAGSystem:
         # Step 1: M predicts Retrieve given (x, y_{t-1})
         previous_generation = "\n".join(conversation_history[-3:]) if conversation_history else ""
         retrieve_decision = self.gemini_client.predict_retrieve(user_query, previous_generation)
-        
+        logger.info("Step 2: M predicts Retrieve given (x, y_{t-1})")
 
         if retrieve_decision == RetrieveDecision.YES:
             return self._handle_retrieval_branch(user_query, previous_generation, start_time)
@@ -72,10 +76,13 @@ class DialogueRAGSystem:
             return self._handle_non_retrieval_branch(user_query, start_time)
 
     def _handle_retrieval_branch(self, query: str, previous_generation: str, start_time: float) -> Dict[str, Any]:
-        """處理需要檢索的分支"""
+        """
+        Handle retrieval branch from retrieve decision
+        """
         self.stats["retrieval_queries"] += 1
 
         # Step 4: 檢索相關對話
+        logger.info("Step 4: Retrieve relevant text passages by similarity search")
         query_embedding = self.embedding_model.encode([query])[0]
         retrieved_docs = self.vector_store.similarity_search(
             query_embedding,
@@ -91,18 +98,23 @@ class DialogueRAGSystem:
             }
 
         # Step 5-7: 為每個相關對話生成候選答案並評估
+        logger.info("Step 5-7: Generate candidate answers for each passages and evaluate")
         candidates = []
-
+        doc_cnt = 1
         for doc, score in retrieved_docs:
             # 判斷相關性
-            
+            doc_cnt += 1
+            logger.info(f"Step 5: Predict [{doc_cnt}] retrieved_doc whether it is relevant or not")
+
             relevance = self.gemini_client.predict_isrel(query, doc['dialogue'])
-            # print(f"predict_isrel ====> {relevance}")
+            
             if relevance == IsREL.RELEVANT:
                 # 生成候選答案
+                logger.info(f"Step 5-1: [{doc_cnt}] generate candidate answer for evaluations")
                 candidate_answer = self._generate_candidate_answer(query, doc, previous_generation)
 
                 # 評估支撐性和有用性
+                logger.info(f"Step 6: [{doc_cnt}] Evaluations by two metrics (IsSup & IsUse)")
                 support_level = self.gemini_client.predict_issup(query, doc['dialogue'], candidate_answer)
                 usefulness = self.gemini_client.predict_isuse(query, candidate_answer, doc['dialogue'])
 
@@ -114,6 +126,8 @@ class DialogueRAGSystem:
                     'usefulness_score': usefulness
                 })
 
+        logger.info(f"Number of candidate answers: {len(candidates)}")
+        
         if not candidates:
             return {
                 "answer": "檢索到的對話內容與您的問題不太相關，無法提供有效回答。",
@@ -122,7 +136,8 @@ class DialogueRAGSystem:
                 "processing_time": time.time() - start_time
             }
 
-        # Step 8: 選擇最佳候選答案
+        # Step 7: 選擇最佳候選答案
+        logger.info(f"Step 7: Ranking candidate answers based on IsRel, IsSup, and IsUse")
         best_candidate = self._rank_candidates(candidates)
 
         return {
@@ -137,13 +152,17 @@ class DialogueRAGSystem:
         }
 
     def _handle_non_retrieval_branch(self, query: str, start_time: float) -> Dict[str, Any]:
-        """處理不需要檢索的分支"""
+        """
+        Handle non-retrieval branch
+        """
         self.stats["non_retrieval_queries"] += 1
 
         # Step 9: 直接生成答案
+        logger.info(f"Step 9: Generate answers directly")
         generated_answer = self._generate_direct_answer(query)
 
         # Step 10: 評估有用性
+        logger.info(f"Step 10: Evaluate answers by IsUse")
         usefulness_score = self.gemini_client.predict_isuse(query, generated_answer)
 
         return {
@@ -155,67 +174,93 @@ class DialogueRAGSystem:
         }
 
     def _generate_candidate_answer(self, query: str, dialogue_doc: Dict[str, Any], previous_generation: str) -> str:
-        """為特定對話生成候選答案"""
-        context = f"請基於以下對話內容回答使用者問題：\n\n對話內容: {dialogue_doc['dialogue']}\n對話摘要: {dialogue_doc['summary']}"
+        """
+        generate candidate answer for specific
+        """
+        
+        # 結構化上下文，讓模型清楚區分不同訊息來源
+        context = f"""
+                    ### 對話全文
+                    {dialogue_doc['dialogue']}
 
+                    ### 對話摘要
+                    {dialogue_doc['summary']}
+                    """
         if previous_generation:
-            context += f"\n\n之前的對話: {previous_generation}"
+            context += f"\n### 之前的對話\n{previous_generation}"
 
         prompt = f"""
+                    你是一位專業的對話分析助理。你的任務是嚴格根據dialogue knowledgebase內的「對話全文」和「對話摘要」來回答「使用者問題」。
+
+                    **回答框架與思考流程 (Chain-of-Thought):**
+                    1.  **理解問題**：首先，完全理解「使用者問題」的核心需求。
+                    2.  **定位資訊**：在「對話全文」和「對話摘要」中查找與問題最相關的具體段落或句子。
+                    3.  **綜合回答**：基於找到的資訊，組織一個清晰、直接的回答。
+
+                    **評估材料:**
                     {context}
 
-                    使用者問題: {query}
+                    ---
 
-                    請提供有用的回答，並：
-                    1. 直接回答使用者問題
-                    2. 引用或描述相關的對話內容
-                    3. 提供具體的資訊或見解
-                    4. 保持回答簡潔明確
+                    **使用者問題:**
+                    {query}
+
+                    ---
+
+                    **輸出要求:**
+                    1.  **直接回答優先 (Answer First)**：回答的開頭必須直接、簡潔地回應問題的核心。
+                    2.  **嚴格基於文本 (Grounding)**：所有回答都必須完全基於提供的「評估材料」。**絕對禁止**添加任何材料中未提及的外部知識或個人推測。
+                    3.  **引用證據 (Cite Evidence)**：在提供細節時，應明確引用或描述相關的對話內容作為證據。例如，可以說「根據對話內容...」或簡短引用關鍵句子。
+                    4.  **結構化輸出 (Structured Output)**:如果答案包含多個要點，請使用條列式(bullet points)來呈現，以提高可讀性。
+                    5.  **語氣與風格 (Tone and Style)**：保持中立、客觀的助理語氣，專注於傳達事實。
+
+                    請開始生成回答：
                 """
         return self.gemini_client.generate_content(prompt)
 
     def _generate_direct_answer(self, query: str) -> str:
-        """直接生成答案（不使用檢索）"""
+        """
+        generate answer directly (not leverage retriever)
+        """
         prompt = f"""
-                    作為對話理解助手，請回答以下問題：
+                    你是一位知識淵博且樂於助人的AI助理。你的任務是基於你的通用知識，為使用者提供清晰、準確且有用的回答。
 
+                    **任務指示:**
+                    1.  **理解意圖**: 仔細分析使用者問題的核心意圖。
+                    2.  **提取知識**: 從你的知識庫中提取最相關的資訊。
+                    3.  **組織答案**: 結構化地組織資訊，使其易於理解。
+
+                    ---
+
+                    **使用者問題:**
                     {query}
 
-                    請基於一般知識提供回答，並：
-                    1. 直接回答問題
-                    2. 提供相關的背景資訊
-                    3. 保持回答有用且相關
+                    ---
+
+                    **回答要求:**
+                    1.  **直接回答優先 (Answer First)**: 在回答的開頭，直接且簡潔地回應問題的核心。
+                    2.  **提供深度與廣度 (Provide Depth and Context)**: 在直接回答之後，提供相關的背景資訊、重要脈絡或有趣的細節，以增加回答的價值。
+                    3.  **結構化輸出 (Structured Output)**: 如果答案包含多個部分、步驟或要點，請務必使用條列式(bullet points)或編號列表來呈現，以提高可讀性。
+                    4.  **保持客觀與中立 (Maintain Objectivity)**: 除非被特別要求，否則應保持客觀中立的語氣，避免表達個人觀點或偏好。
+                    5.  **定義關鍵術語 (Define Key Terms)**: 如果回答中包含專業術語，請提供簡潔的解釋。
+
+                    請開始生成回答：
                 """
         return self.gemini_client.generate_content(prompt)
 
     def _rank_candidates(self, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """根據 IsREL, IsSUP, IsUSE 排序候選答案"""
-        def calculate_score(candidate):
-            score = 0
-
-            # IsREL 權重
-            if candidate['is_relevant'] == IsREL.RELEVANT:
-                score += 10
-
-            # IsSUP 權重
-            support_scores = {
-                IsSUP.FULLY_SUPPORTED: 10,
-                IsSUP.PARTIALLY_SUPPORTED: 5,
-                IsSUP.NO_SUPPORT: 0
-            }
-            score += support_scores.get(candidate['support_level'], 0)
-
-            # IsUSE 權重
-            score += candidate['usefulness_score'].value * 2
-
-            return score
-
+        """
+        Sort ranking candiates based on IsRel, IsSup, IsUse
+        """
         # 按分數排序
         sorted_candidates = sorted(candidates, key=calculate_score, reverse=True)
+        logger.info(f"Rerank for candidates: {sorted_candidates}")
         return sorted_candidates[0]
 
     def get_system_stats(self) -> Dict[str, Any]:
-        """獲取系統統計資訊"""
+        """
+        System statistics
+        """
         uptime = datetime.now() - self.stats["start_time"]
         return {
             "total_queries": self.stats["total_queries"],
