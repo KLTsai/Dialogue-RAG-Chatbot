@@ -9,9 +9,9 @@ class EmbeddingModel:
     """Granite embedding model using SentenceTransformers"""
     
     def __init__(self, config: DataEmbeddingConfig):
-        self.model_name = config.model_name
         try:
-            self.model = SentenceTransformer(self.model_name)
+            self.config = config
+            self.model = SentenceTransformer(self.config.model_name)
             logger.info(f"Granite embedding model '{self.model_name}' loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load model {self.model_name}: {str(e)}")
