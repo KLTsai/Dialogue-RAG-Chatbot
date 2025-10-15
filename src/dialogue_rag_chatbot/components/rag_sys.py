@@ -3,19 +3,19 @@ from datetime import datetime
 from datasets import load_from_disk
 from typing import List, Dict, Any, Tuple
 import numpy as np
-from legal_rag_chatbot.utils.common import calculate_score
-from legal_rag_chatbot.logging import logger
-from legal_rag_chatbot.config.configuration import ConfigurationManager
-from legal_rag_chatbot.entity import (
+from dialogue_rag_chatbot.utils.common import calculate_score
+from dialogue_rag_chatbot.logging import logger
+from dialogue_rag_chatbot.config.configuration import ConfigurationManager
+from dialogue_rag_chatbot.entity import (
     GeminiConfig,
     RetrieveDecision,
     IsREL,
     IsSUP,
     IsUSE
 )
-from legal_rag_chatbot.components.data_embedding import EmbeddingModel
-from legal_rag_chatbot.components.vector_storage import VectorStorage
-from legal_rag_chatbot.components.gemini_client import GeminiClient
+from dialogue_rag_chatbot.components.data_embedding import EmbeddingModel
+from dialogue_rag_chatbot.components.vector_storage import VectorStorage
+from dialogue_rag_chatbot.components.gemini_client import GeminiClient
 
 class DialogueRAGSystem:
     """

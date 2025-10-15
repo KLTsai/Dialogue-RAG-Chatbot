@@ -1,5 +1,5 @@
 import gradio as gr
-from legal_rag_chatbot.logging import logger
+from dialogue_rag_chatbot.logging import logger
 import main
 
 # 在模組載入時就初始化系統

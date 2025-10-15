@@ -1,7 +1,7 @@
-from legal_rag_chatbot.logging import logger
+from dialogue_rag_chatbot.logging import logger
 from typing import List, Dict, Any, Tuple
 import numpy as np
-from legal_rag_chatbot.entity import VectorStorageConfig
+from dialogue_rag_chatbot.entity import VectorStorageConfig
 
 class VectorStorage:
     """Store and retrieve document embeddings"""

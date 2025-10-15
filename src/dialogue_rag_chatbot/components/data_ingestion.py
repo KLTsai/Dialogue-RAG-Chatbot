@@ -1,9 +1,9 @@
 import os
 import urllib.request as request
 import py7zr
-from legal_rag_chatbot.logging import logger
-from legal_rag_chatbot.utils.common import get_size
-from legal_rag_chatbot.entity import DataIngestionConfig
+from dialogue_rag_chatbot.logging import logger
+from dialogue_rag_chatbot.utils.common import get_size
+from dialogue_rag_chatbot.entity import DataIngestionConfig
 
 class DataIngestion:
     def __init__(self, config: DataIngestionConfig):

@@ -1,5 +1,5 @@
-from legal_rag_chatbot.logging import logger
-from legal_rag_chatbot.entity import (
+from dialogue_rag_chatbot.logging import logger
+from dialogue_rag_chatbot.entity import (
     GeminiConfig,
     RetrieveDecision,
     IsREL,
@@ -213,24 +213,78 @@ class GeminiClient:
     def predict_isuse(self, query: str, candidate_answer: str, dialogue: str = "") -> IsUSE:
         """
         M predicts IsUSE given x, y_t, d
-        評估候選答案的有用性
         """
-        context = f"參考dialogue knowledgebase的對話: {dialogue}..." if dialogue else ""
+        context = f"### 參考對話內容\n{dialogue}" if dialogue else ""
+        
         prompt = f"""
-                    你是一個回答有用性評分小幫手，請根據以下標準對候選答案進行評分，並且**只輸出一個數字 (1-5)，不要解釋，不要輸出其他文字**。
+                    你是一位嚴格的AI品質評估專家。你的任務是根據一套詳細的負面指標和正面指標，對「候選答案」的有用性進行批判性評分。
 
-                    使用者查詢: {query}
-                    候選答案: {candidate_answer}
+                    你的評分必須非常嚴格。大部分的答案可能只會落在2-3分。只有真正完美無瑕的答案才能獲得5分。
+
+                    **評估材料:**
+                    ### 使用者查詢
+                    {query}
+
+                    ### 候選答案
+                    {candidate_answer}
+
                     {context}
 
-                    評分標準：
-                    5 = 非常有用：完整回答問題，資訊具體且高度相關
-                    4 = 有用：回答相關且提供幫助
-                    3 = 中等：部分相關，但缺乏細節或完整性
-                    2 = 較少有用：相關性低或幫助有限
-                    1 = 無用：完全不相關或具有誤導性
+                    ---
 
-                    請直接回覆一個數字 (1, 2, 3, 4, 或 5)。
+                    **思考與評估流程 (Chain-of-Thought):**
+                    1.  **檢視負面指標**：首先，檢查答案是否存在任何「扣分項」。
+                    2.  **評估正面指標**：接著，根據答案的品質評估其「加分項」。
+                    3.  **綜合判斷**：基於上述分析，給出一個最能反映其真實品質的整數分數。
+
+                    ---
+
+                    **評分標準 (詳細定義):**
+
+                    **主要扣分項 (Negative Indicators):**
+                    -   **不準確或虛構 (Inaccurate/Hallucinated)**: 包含與事實不符的資訊。
+                    -   **答非所問 (Irrelevant)**: 未能直接回應使用者查詢的核心。
+                    -   **過於籠統 (Too Generic)**: 提供了常識性、無特定價值的回答。
+                    -   **缺乏細節 (Lacks Detail)**: 未能提供足夠的深度或具體資訊。
+                    -   **難以理解 (Hard to Understand)**: 語言晦澀、結構混亂。
+
+                    **評分等級定義：**
+
+                    **5分 (卓越):**
+                    - **必須同時滿足**:
+                        - 完全回答了問題的所有層面。
+                        - 提供了具體、可操作且深刻的見解。
+                        - 資訊密度高，沒有任何冗言贅字。
+                        - **完全沒有**任何上述「扣分項」。
+
+                    **4分 (優秀):**
+                    - 回答準確且直接。
+                    - 提供了有價值的資訊，但可能在深度或完整性上略有不足。
+                    - 可能有極輕微的冗餘。
+
+                    **3分 (合格):**
+                    - 基本回答了問題，但較為表面。
+                    - 資訊是正確的，但缺乏具體細節。
+                    - 是一個安全但價值有限的回答 (A safe but low-value answer)。
+
+                    **2分 (不佳):**
+                    - **符合以下任一情況**:
+                        - 答案部分偏離主題。
+                        - 過於籠統，幾乎沒有提供新資訊。
+                        - 雖然相關，但幫助極其有限。
+
+                    **1分 (不可接受):**
+                    - **符合以下任一情況**:
+                        - 包含明顯的錯誤資訊。
+                        - 完全答非所問。
+                        - 具有誤導性或產生負面影響。
+
+                    ---
+
+                    **輸出要求:**
+                    **只輸出一個整數數字 (1, 2, 3, 4, 或 5)，不要有任何解釋。**
+
+                    你的評分是：
                 """
         response = self.generate_content(prompt).strip()
         try:

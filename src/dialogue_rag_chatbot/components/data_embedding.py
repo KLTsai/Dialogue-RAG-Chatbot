@@ -1,9 +1,9 @@
 import os
-from legal_rag_chatbot.logging import logger
+from dialogue_rag_chatbot.logging import logger
 from sentence_transformers import SentenceTransformer
 from datasets import load_dataset
 from typing import List, Dict, Any, Tuple
-from legal_rag_chatbot.entity import DataEmbeddingConfig
+from dialogue_rag_chatbot.entity import DataEmbeddingConfig
 
 class EmbeddingModel:
     """Granite embedding model using SentenceTransformers"""

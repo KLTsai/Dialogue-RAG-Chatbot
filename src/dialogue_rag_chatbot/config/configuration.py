@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
-from legal_rag_chatbot.constants import *
-from legal_rag_chatbot.utils.common import read_yaml, create_directories
-from legal_rag_chatbot.entity import (
+from dialogue_rag_chatbot.constants import *
+from dialogue_rag_chatbot.utils.common import read_yaml, create_directories
+from dialogue_rag_chatbot.entity import (
     DataIngestionConfig,
     DataEmbeddingConfig,
     VectorStorageConfig,

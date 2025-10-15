@@ -1,6 +1,6 @@
-from legal_rag_chatbot.logging import logger
-from legal_rag_chatbot.configuration import ConfigurationManager
-from legal_rag_chatbot.rag_sys import DialogueRAGSystem
+from dialogue_rag_chatbot.logging import logger
+from dialogue_rag_chatbot.config.configuration import ConfigurationManager
+from dialogue_rag_chatbot.components.rag_sys import DialogueRAGSystem
 import os
 import time
 
