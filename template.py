@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s]: %(message)s')
-project_name = "legal-rag-chatbot"
+project_name = "dialogue-rag-chatbot"
 
 list_of_files = [
     ".github/workflows/.gitkeep",

@@ -6,9 +6,9 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 __version__ = "0.0.0"
 
-REPO_NAME = "Legal_RAG_Chatbot"
+REPO_NAME = "Dialogue_RAG_Chatbot"
 AUTHOR_USER_NAME = "KLTsai"
-SRC_REPO = "legal_rag_chatbot"
+SRC_REPO = "dialogue_rag_chatbot"
 AUTHOR_EMAIL = "kunger810@gmail.com"
 
 
