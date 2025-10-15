@@ -1,1 +1,1 @@
-# Legal-RAG-Chatbot
+# Dialogue-RAG-Chatbot
